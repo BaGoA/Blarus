@@ -1,0 +1,14 @@
+[package]
+name = "blarus"
+version = "0.1.0"
+authors = ["Bastian Gonzalez Acevedo <bastiangonzalezacevedo@gmail.com>"]
+edition = "2021"
+license-file = "LICENSE"
+description = "Blarus is linear algebra library inspired of BLAS"
+repository = "https://github.com/BaGoA/Blarus"
+readme = "README.md"
+keywords = ["linear-algebra", "mathematics"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
