@@ -71,6 +71,14 @@ where
             data,
         };
     }
+
+    fn nb_rows(&self) -> usize {
+        return self.nb_rows;
+    }
+
+    fn nb_cols(&self) -> usize {
+        return self.nb_cols;
+    }
 }
 
 impl<T> Index<(usize, usize)> for Matrix<T> {
@@ -129,6 +137,17 @@ mod tests {
         assert_eq!(matrix.nb_rows, nb_rows);
         assert_eq!(matrix.nb_cols, nb_cols);
         assert_eq!(matrix.data.len(), nb_rows * nb_cols);
+    }
+
+    #[test]
+    fn test_matrix_dimensions_accessors() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+
+        let matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, Ordering::RowMajor);
+
+        assert_eq!(matrix.nb_rows(), nb_rows);
+        assert_eq!(matrix.nb_cols(), nb_cols);
     }
 
     #[test]
