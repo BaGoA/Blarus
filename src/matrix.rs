@@ -1,3 +1,5 @@
+use std::ops::{Index, IndexMut};
+
 /// Matrix ordering
 /// The matrix is stored in contiguous memory vector.
 /// Then, there are two way to store a matrix:
@@ -71,6 +73,22 @@ where
     }
 }
 
+impl<T> Index<(usize, usize)> for Matrix<T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        let id: usize = self.storage_order.index(index.0, index.1);
+        return self.data.index(id);
+    }
+}
+
+impl<T> IndexMut<(usize, usize)> for Matrix<T> {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        let id: usize = self.storage_order.index(index.0, index.1);
+        return self.data.index_mut(id);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,5 +129,24 @@ mod tests {
         assert_eq!(matrix.nb_rows, nb_rows);
         assert_eq!(matrix.nb_cols, nb_cols);
         assert_eq!(matrix.data.len(), nb_rows * nb_cols);
+    }
+
+    #[test]
+    fn test_matrix_index_accessors() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+
+        let mut matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, Ordering::RowMajor);
+
+        let value: i32 = 1;
+
+        matrix[(0, 0)] = value;
+        assert_eq!(matrix[(0, 0)], value);
+
+        matrix[(2, 1)] = value;
+        assert_eq!(matrix[(2, 1)], value);
+
+        matrix[(1, 2)] = value;
+        assert_eq!(matrix[(1, 2)], value);
     }
 }
