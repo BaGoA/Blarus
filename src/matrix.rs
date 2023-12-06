@@ -5,6 +5,7 @@ use std::ops::{Index, IndexMut};
 /// Then, there are two way to store a matrix:
 ///     - according to row, row major ordering
 ///     - according to column, column major ordering
+#[derive(Clone, Copy, Debug, PartialEq)]
 enum Ordering {
     RowMajor,
     ColumnMajor,
@@ -40,7 +41,7 @@ impl StorageOrder {
     }
 
     /// Compute index of data in vector which store matrix data
-    /// from row index anf colunm index
+    /// from row index and colunm index
     fn index(&self, row_id: usize, col_id: usize) -> usize {
         return row_id * self.stride_row + col_id * self.stride_col;
     }
@@ -78,6 +79,10 @@ where
 
     fn nb_cols(&self) -> usize {
         return self.nb_cols;
+    }
+
+    fn order(&self) -> Ordering {
+        return self.storage_order.order;
     }
 }
 
@@ -148,6 +153,17 @@ mod tests {
 
         assert_eq!(matrix.nb_rows(), nb_rows);
         assert_eq!(matrix.nb_cols(), nb_cols);
+    }
+
+    #[test]
+    fn test_matrix_order_accessor() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+
+        let order: Ordering = Ordering::ColumnMajor;
+        let matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, order);
+
+        assert_eq!(matrix.order(), order);
     }
 
     #[test]
