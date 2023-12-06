@@ -6,7 +6,7 @@ use std::ops::{Index, IndexMut};
 ///     - according to row, row major ordering
 ///     - according to column, column major ordering
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum Ordering {
+pub enum Ordering {
     RowMajor,
     ColumnMajor,
 }
@@ -50,7 +50,7 @@ impl StorageOrder {
 /// Matrix
 /// The data is stored in contiguous memory vector
 /// according to ordering chosen
-struct Matrix<T> {
+pub struct Matrix<T> {
     nb_rows: usize,
     nb_cols: usize,
     storage_order: StorageOrder,
@@ -61,7 +61,10 @@ impl<T> Matrix<T>
 where
     T: Default,
 {
-    fn new(nb_rows: usize, nb_cols: usize, order: Ordering) -> Self {
+    // Matrix constructor
+    // nb_rows and nb_cols correspond respectively to number of rows and columns of matrix
+    // order is matrix ordering
+    pub fn new(nb_rows: usize, nb_cols: usize, order: Ordering) -> Self {
         let mut data: Vec<T> = Vec::new();
         data.resize_with(nb_rows * nb_cols, Default::default);
 
@@ -73,19 +76,25 @@ where
         };
     }
 
-    fn nb_rows(&self) -> usize {
+    /// Get number of rows
+    pub fn nb_rows(&self) -> usize {
         return self.nb_rows;
     }
 
-    fn nb_cols(&self) -> usize {
+    /// Get number of columns
+    pub fn nb_cols(&self) -> usize {
         return self.nb_cols;
     }
 
-    fn order(&self) -> Ordering {
+    /// Get matrix ordering
+    pub fn order(&self) -> Ordering {
         return self.storage_order.order;
     }
 }
 
+/// Implementation of Index trait for Matrix
+/// This allows to read the matrix element at (index of row, index of column) position
+/// like this let element: f32 = matrix[(0, 2)];
 impl<T> Index<(usize, usize)> for Matrix<T> {
     type Output = T;
 
@@ -95,6 +104,9 @@ impl<T> Index<(usize, usize)> for Matrix<T> {
     }
 }
 
+/// Implementation of IndexMut trait for Matrix
+/// This allows to write an value in matrix at (index of row, index of column) position
+/// like this matrix[(0, 2)] = 3.1415;
 impl<T> IndexMut<(usize, usize)> for Matrix<T> {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         let id: usize = self.storage_order.index(index.0, index.1);
