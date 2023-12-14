@@ -1,51 +1,6 @@
 use std::ops::{Index, IndexMut};
 
-/// Matrix ordering
-/// The matrix is stored in contiguous memory vector.
-/// Then, there are two way to store a matrix:
-///     - according to row, row major ordering
-///     - according to column, column major ordering
-#[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Ordering {
-    RowMajor,
-    ColumnMajor,
-}
-
-/// Matrix storage order
-/// These structure contain strides along row and column
-/// that we need to apply to matrix indexes (i, j) to obtain the
-/// index of data in vector which store matrix data
-struct StorageOrder {
-    stride_row: usize,
-    stride_col: usize,
-    order: Ordering,
-}
-
-impl StorageOrder {
-    // Matrix storage order constructor
-    // nb_rows and nb_cols correspond respectively to number of rows and columns of matrix
-    // order is matrix ordering
-    fn new(nb_rows: usize, nb_cols: usize, order: Ordering) -> Self {
-        match order {
-            Ordering::RowMajor => Self {
-                stride_row: nb_cols,
-                stride_col: 1,
-                order,
-            },
-            Ordering::ColumnMajor => Self {
-                stride_row: 1,
-                stride_col: nb_rows,
-                order,
-            },
-        }
-    }
-
-    /// Compute index of data in vector which store matrix data
-    /// from row index and colunm index
-    fn index(&self, row_id: usize, col_id: usize) -> usize {
-        return row_id * self.stride_row + col_id * self.stride_col;
-    }
-}
+use super::view::Accessor;
 
 /// Matrix
 /// The data is stored in contiguous memory vector
@@ -53,7 +8,7 @@ impl StorageOrder {
 pub struct Matrix<T> {
     nb_rows: usize,
     nb_cols: usize,
-    storage_order: StorageOrder,
+    accessor: Accessor,
     data: Vec<T>,
 }
 
@@ -61,17 +16,30 @@ impl<T> Matrix<T>
 where
     T: Default,
 {
-    // Matrix constructor
+    // Row-major matrix constructor
     // nb_rows and nb_cols correspond respectively to number of rows and columns of matrix
-    // order is matrix ordering
-    pub fn new(nb_rows: usize, nb_cols: usize, order: Ordering) -> Self {
+    pub fn new_row_major(nb_rows: usize, nb_cols: usize) -> Self {
         let mut data: Vec<T> = Vec::new();
         data.resize_with(nb_rows * nb_cols, Default::default);
 
         return Self {
             nb_rows,
             nb_cols,
-            storage_order: StorageOrder::new(nb_rows, nb_cols, order),
+            accessor: Accessor::new(nb_cols, 1),
+            data,
+        };
+    }
+
+    // Column-major matrix constructor
+    // nb_rows and nb_cols correspond respectively to number of rows and columns of matrix
+    pub fn new_column_major(nb_rows: usize, nb_cols: usize) -> Self {
+        let mut data: Vec<T> = Vec::new();
+        data.resize_with(nb_rows * nb_cols, Default::default);
+
+        return Self {
+            nb_rows,
+            nb_cols,
+            accessor: Accessor::new(1, nb_rows),
             data,
         };
     }
@@ -85,11 +53,6 @@ where
     pub fn nb_cols(&self) -> usize {
         return self.nb_cols;
     }
-
-    /// Get matrix ordering
-    pub fn order(&self) -> Ordering {
-        return self.storage_order.order;
-    }
 }
 
 /// Implementation of Index trait for Matrix
@@ -99,7 +62,7 @@ impl<T> Index<(usize, usize)> for Matrix<T> {
     type Output = T;
 
     fn index(&self, index: (usize, usize)) -> &Self::Output {
-        let id: usize = self.storage_order.index(index.0, index.1);
+        let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index(id);
     }
 }
@@ -109,7 +72,7 @@ impl<T> Index<(usize, usize)> for Matrix<T> {
 /// like this matrix[(0, 2)] = 3.1415;
 impl<T> IndexMut<(usize, usize)> for Matrix<T> {
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
-        let id: usize = self.storage_order.index(index.0, index.1);
+        let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index_mut(id);
     }
 }
@@ -119,37 +82,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_storage_order_new() {
-        let nb_rows: usize = 2;
-        let nb_cols: usize = 3;
-
-        let mut storage_order = StorageOrder::new(nb_rows, nb_cols, Ordering::RowMajor);
-        assert_eq!(storage_order.stride_row, nb_cols);
-        assert_eq!(storage_order.stride_col, 1);
-
-        storage_order = StorageOrder::new(nb_rows, nb_cols, Ordering::ColumnMajor);
-        assert_eq!(storage_order.stride_row, 1);
-        assert_eq!(storage_order.stride_col, nb_rows);
-    }
-
-    #[test]
-    fn test_storage_order_index() {
+    fn test_matrix_new_row_major() {
         let nb_rows: usize = 3;
-        let nb_cols: usize = 3;
+        let nb_cols: usize = 4;
 
-        let mut storage_order = StorageOrder::new(nb_rows, nb_cols, Ordering::RowMajor);
-        assert_eq!(storage_order.index(1, 2), nb_cols + 2);
-
-        storage_order = StorageOrder::new(nb_rows, nb_cols, Ordering::ColumnMajor);
-        assert_eq!(storage_order.index(2, 1), 2 + nb_rows);
-    }
-
-    #[test]
-    fn test_matrix_new() {
-        let nb_rows: usize = 3;
-        let nb_cols: usize = 3;
-
-        let matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, Ordering::RowMajor);
+        let matrix: Matrix<i32> = Matrix::new_row_major(nb_rows, nb_cols);
 
         assert_eq!(matrix.nb_rows, nb_rows);
         assert_eq!(matrix.nb_cols, nb_cols);
@@ -157,43 +94,73 @@ mod tests {
     }
 
     #[test]
-    fn test_matrix_dimensions_accessors() {
-        let nb_rows: usize = 3;
+    fn test_matrix_new_column_major() {
+        let nb_rows: usize = 4;
         let nb_cols: usize = 3;
 
-        let matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, Ordering::RowMajor);
+        let matrix: Matrix<i32> = Matrix::new_column_major(nb_rows, nb_cols);
+
+        assert_eq!(matrix.nb_rows, nb_rows);
+        assert_eq!(matrix.nb_cols, nb_cols);
+        assert_eq!(matrix.data.len(), nb_rows * nb_cols);
+    }
+
+    #[test]
+    fn test_matrix_dimensions_access() {
+        let nb_rows: usize = 5;
+        let nb_cols: usize = 3;
+
+        let matrix: Matrix<i32> = Matrix::new_row_major(nb_rows, nb_cols);
 
         assert_eq!(matrix.nb_rows(), nb_rows);
         assert_eq!(matrix.nb_cols(), nb_cols);
     }
 
     #[test]
-    fn test_matrix_order_accessor() {
+    fn test_matrix_row_major_data_access() {
         let nb_rows: usize = 3;
         let nb_cols: usize = 3;
 
-        let order: Ordering = Ordering::ColumnMajor;
-        let matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, order);
+        let mut matrix: Matrix<i32> = Matrix::new_row_major(nb_rows, nb_cols);
 
-        assert_eq!(matrix.order(), order);
+        let data_ref: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        matrix.data = data_ref.clone();
+
+        assert_eq!(matrix[(0, 0)], data_ref[0]);
+        assert_eq!(matrix[(0, 1)], data_ref[1]);
+        assert_eq!(matrix[(0, 2)], data_ref[2]);
+        assert_eq!(matrix[(1, 0)], data_ref[3]);
+        assert_eq!(matrix[(1, 1)], data_ref[4]);
+        assert_eq!(matrix[(1, 2)], data_ref[5]);
+        assert_eq!(matrix[(2, 0)], data_ref[6]);
+        assert_eq!(matrix[(2, 1)], data_ref[7]);
+        assert_eq!(matrix[(2, 2)], data_ref[8]);
+
+        matrix[(2, 1)] = 43;
+        assert_eq!(matrix[(2, 1)], 43);
     }
 
     #[test]
-    fn test_matrix_index_accessors() {
+    fn test_matrix_column_major_data_access() {
         let nb_rows: usize = 3;
         let nb_cols: usize = 3;
 
-        let mut matrix: Matrix<i32> = Matrix::new(nb_rows, nb_cols, Ordering::RowMajor);
+        let mut matrix: Matrix<i32> = Matrix::new_column_major(nb_rows, nb_cols);
 
-        let value: i32 = 1;
+        let data_ref: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        matrix.data = data_ref.clone();
 
-        matrix[(0, 0)] = value;
-        assert_eq!(matrix[(0, 0)], value);
+        assert_eq!(matrix[(0, 0)], data_ref[0]);
+        assert_eq!(matrix[(1, 0)], data_ref[1]);
+        assert_eq!(matrix[(2, 0)], data_ref[2]);
+        assert_eq!(matrix[(0, 1)], data_ref[3]);
+        assert_eq!(matrix[(1, 1)], data_ref[4]);
+        assert_eq!(matrix[(2, 1)], data_ref[5]);
+        assert_eq!(matrix[(0, 2)], data_ref[6]);
+        assert_eq!(matrix[(1, 2)], data_ref[7]);
+        assert_eq!(matrix[(2, 2)], data_ref[8]);
 
-        matrix[(2, 1)] = value;
-        assert_eq!(matrix[(2, 1)], value);
-
-        matrix[(1, 2)] = value;
-        assert_eq!(matrix[(1, 2)], value);
+        matrix[(2, 1)] = 43;
+        assert_eq!(matrix[(2, 1)], 43);
     }
 }
