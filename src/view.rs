@@ -1,3 +1,6 @@
+use std::ops::Index;
+
+/// Accessor
 /// This structure define how we access to memory location from matrix indexes (i, j).
 /// It contains strides along row and column that we need to apply to matrix indexes (i, j)
 /// to obtain the memory location in vector which store matrix data.
@@ -41,9 +44,47 @@ impl Accessor {
     }
 }
 
+/// View
+/// This struture is a view on part of matrix, so it does not own data.
+struct View<'a, T> {
+    nb_rows: usize,
+    nb_cols: usize,
+    accessor: Accessor,
+    data: &'a [T],
+}
+
+impl<'a, T> View<'a, T> {
+    pub fn new(nb_rows: usize, nb_cols: usize, accessor: Accessor, data: &'a [T]) -> Self {
+        return Self {
+            nb_rows,
+            nb_cols,
+            accessor,
+            data,
+        };
+    }
+
+    pub fn nb_rows(&self) -> usize {
+        return self.nb_rows;
+    }
+
+    pub fn nb_cols(&self) -> usize {
+        return self.nb_cols;
+    }
+}
+
+impl<'a, T> Index<(usize, usize)> for View<'a, T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        let id: usize = self.accessor.index(index.0, index.1);
+        return self.data.index(id);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::cmp::Ordering;
 
     #[test]
     fn test_accessor_new() {
@@ -95,5 +136,75 @@ mod tests {
 
         accessor = Accessor::new_with_offset(1, stride_col, offset_row, offset_col);
         assert_eq!(accessor.index(2, 1), 7 + stride_col);
+    }
+
+    #[test]
+    fn test_view_new() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let view: View<i32> =
+            View::new(nb_rows, nb_cols, Accessor::new(nb_cols, 1), data.as_slice());
+
+        assert_eq!(view.nb_rows, nb_rows);
+        assert_eq!(view.nb_cols, nb_cols);
+
+        match view.data.partial_cmp(data.as_slice()) {
+            Some(result) => assert_eq!(result, Ordering::Equal),
+            None => assert!(false),
+        }
+    }
+
+    #[test]
+    fn test_view_dimensions_access() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let view: View<i32> =
+            View::new(nb_rows, nb_cols, Accessor::new(nb_cols, 1), data.as_slice());
+
+        assert_eq!(view.nb_rows(), nb_rows);
+        assert_eq!(view.nb_cols(), nb_cols);
+    }
+
+    #[test]
+    fn test_view_data_access() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let view: View<i32> =
+            View::new(nb_rows, nb_cols, Accessor::new(nb_cols, 1), data.as_slice());
+
+        assert_eq!(view[(0, 0)], data[0]);
+        assert_eq!(view[(0, 1)], data[1]);
+        assert_eq!(view[(0, 2)], data[2]);
+        assert_eq!(view[(1, 0)], data[3]);
+        assert_eq!(view[(1, 1)], data[4]);
+        assert_eq!(view[(1, 2)], data[5]);
+        assert_eq!(view[(2, 0)], data[6]);
+        assert_eq!(view[(2, 1)], data[7]);
+        assert_eq!(view[(2, 2)], data[8]);
+    }
+
+    #[test]
+    fn test_view_data_access_with_offset() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let view: View<i32> = View::new(
+            nb_rows - 1,
+            nb_cols - 1,
+            Accessor::new_with_offset(nb_cols, 1, 1, 1),
+            data.as_slice(),
+        );
+
+        assert_eq!(view[(0, 0)], data[4]);
+        assert_eq!(view[(0, 1)], data[5]);
+        assert_eq!(view[(1, 0)], data[7]);
+        assert_eq!(view[(1, 1)], data[8]);
     }
 }

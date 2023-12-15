@@ -2,9 +2,7 @@ use std::ops::{Index, IndexMut};
 
 use super::view::Accessor;
 
-/// Matrix
-/// The data is stored in contiguous memory vector
-/// according to ordering chosen
+/// Matrix structure
 pub struct Matrix<T> {
     nb_rows: usize,
     nb_cols: usize,
