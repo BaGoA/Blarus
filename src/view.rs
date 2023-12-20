@@ -1,4 +1,4 @@
-use std::ops::Index;
+use std::ops::{Index, IndexMut};
 
 /// Accessor
 /// This structure define how we access to memory location from matrix indexes (i, j).
@@ -78,6 +78,50 @@ impl<'a, T> Index<(usize, usize)> for View<'a, T> {
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index(id);
+    }
+}
+
+/// Mutable View
+/// This struture is a mutable view on part of matrix, so it does not own data.
+struct ViewMut<'a, T> {
+    nb_rows: usize,
+    nb_cols: usize,
+    accessor: Accessor,
+    data: &'a mut [T],
+}
+
+impl<'a, T> ViewMut<'a, T> {
+    pub fn new(nb_rows: usize, nb_cols: usize, accessor: Accessor, data: &'a mut [T]) -> Self {
+        return Self {
+            nb_rows,
+            nb_cols,
+            accessor,
+            data,
+        };
+    }
+
+    pub fn nb_rows(&self) -> usize {
+        return self.nb_rows;
+    }
+
+    pub fn nb_cols(&self) -> usize {
+        return self.nb_cols;
+    }
+}
+
+impl<'a, T> Index<(usize, usize)> for ViewMut<'a, T> {
+    type Output = T;
+
+    fn index(&self, index: (usize, usize)) -> &Self::Output {
+        let id: usize = self.accessor.index(index.0, index.1);
+        return self.data.index(id);
+    }
+}
+
+impl<'a, T> IndexMut<(usize, usize)> for ViewMut<'a, T> {
+    fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
+        let id: usize = self.accessor.index(index.0, index.1);
+        return self.data.index_mut(id);
     }
 }
 
@@ -206,5 +250,60 @@ mod tests {
         assert_eq!(view[(0, 1)], data[5]);
         assert_eq!(view[(1, 0)], data[7]);
         assert_eq!(view[(1, 1)], data[8]);
+    }
+
+    #[test]
+    fn test_mutable_view_data_access() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let mut data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let data_clone: Vec<i32> = data.clone();
+
+        let mut view: ViewMut<i32> = ViewMut::new(
+            nb_rows,
+            nb_cols,
+            Accessor::new(nb_cols, 1),
+            data.as_mut_slice(),
+        );
+
+        assert_eq!(view[(0, 0)], data_clone[0]);
+        assert_eq!(view[(0, 1)], data_clone[1]);
+        assert_eq!(view[(0, 2)], data_clone[2]);
+        assert_eq!(view[(1, 0)], data_clone[3]);
+        assert_eq!(view[(1, 1)], data_clone[4]);
+        assert_eq!(view[(1, 2)], data_clone[5]);
+        assert_eq!(view[(2, 0)], data_clone[6]);
+        assert_eq!(view[(2, 1)], data_clone[7]);
+        assert_eq!(view[(2, 2)], data_clone[8]);
+
+        let new_value: i32 = 17;
+        view[(1, 2)] = new_value;
+        assert_eq!(view[(1, 2)], new_value);
+        assert_eq!(data[5], new_value);
+    }
+
+    #[test]
+    fn test_mutable_view_data_access_with_offset() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let mut data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+        let data_clone: Vec<i32> = data.clone();
+
+        let mut view: ViewMut<i32> = ViewMut::new(
+            nb_rows - 1,
+            nb_cols - 1,
+            Accessor::new_with_offset(nb_cols, 1, 1, 1),
+            data.as_mut_slice(),
+        );
+
+        assert_eq!(view[(0, 0)], data_clone[4]);
+        assert_eq!(view[(0, 1)], data_clone[5]);
+        assert_eq!(view[(1, 0)], data_clone[7]);
+        assert_eq!(view[(1, 1)], data_clone[8]);
+
+        let new_value: i32 = 17;
+        view[(1, 0)] = new_value;
+        assert_eq!(view[(1, 0)], new_value);
+        assert_eq!(data[7], new_value);
     }
 }
