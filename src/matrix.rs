@@ -2,7 +2,9 @@ use std::ops::{Index, IndexMut};
 
 use super::view::Accessor;
 
-/// Matrix structure
+/// Matrix
+/// This structure contains number of rows and number of columns of matrix, an accessor
+/// to get memory position of elements and a vector to store matrix data
 pub struct Matrix<T> {
     nb_rows: usize,
     nb_cols: usize,
@@ -14,8 +16,7 @@ impl<T> Matrix<T>
 where
     T: Default,
 {
-    // Row-major matrix constructor
-    // nb_rows and nb_cols correspond respectively to number of rows and columns of matrix
+    // Create a row-major matrix from number of rows and columns of matrix
     pub fn new_row_major(nb_rows: usize, nb_cols: usize) -> Self {
         let mut data: Vec<T> = Vec::new();
         data.resize_with(nb_rows * nb_cols, Default::default);
@@ -28,8 +29,7 @@ where
         };
     }
 
-    // Column-major matrix constructor
-    // nb_rows and nb_cols correspond respectively to number of rows and columns of matrix
+    // Create a column-major matrix from number of rows and columns of matrix
     pub fn new_column_major(nb_rows: usize, nb_cols: usize) -> Self {
         let mut data: Vec<T> = Vec::new();
         data.resize_with(nb_rows * nb_cols, Default::default);
@@ -53,22 +53,20 @@ where
     }
 }
 
-/// Implementation of Index trait for Matrix
-/// This allows to read the matrix element at (index of row, index of column) position
-/// like this let element: f32 = matrix[(0, 2)];
 impl<T> Index<(usize, usize)> for Matrix<T> {
     type Output = T;
 
+    /// This allows to read the matrix element at (index of row, index of column) position
+    /// like this let element: f32 = matrix[(0, 2)];
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index(id);
     }
 }
 
-/// Implementation of IndexMut trait for Matrix
-/// This allows to write an value in matrix at (index of row, index of column) position
-/// like this matrix[(0, 2)] = 3.1415;
 impl<T> IndexMut<(usize, usize)> for Matrix<T> {
+    /// This allows to write an value in matrix at (index of row, index of column) position
+    /// like this matrix[(0, 2)] = 3.1415;
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index_mut(id);

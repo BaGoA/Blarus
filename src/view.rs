@@ -12,7 +12,7 @@ pub struct Accessor {
 }
 
 impl Accessor {
-    // Constructor from stride along row and column
+    // Create an accesor from stride along row and column
     // We keep the offset to 0
     pub fn new(stride_row: usize, stride_col: usize) -> Self {
         return Self {
@@ -22,7 +22,7 @@ impl Accessor {
         };
     }
 
-    // Constructor from stride and offset along row and column
+    // Create an accessor from stride and offset along row and column
     pub fn new_with_offset(
         stride_row: usize,
         stride_col: usize,
@@ -46,6 +46,8 @@ impl Accessor {
 
 /// View
 /// This struture is a view on part of matrix, so it does not own data.
+/// It contains number of rows and number of columns of view, an accessor
+/// to get memory position of elements and a slice on data owned by matrix
 struct View<'a, T> {
     nb_rows: usize,
     nb_cols: usize,
@@ -54,6 +56,7 @@ struct View<'a, T> {
 }
 
 impl<'a, T> View<'a, T> {
+    /// Create a view from number of rows, number of columns, an accessor and a mutable slice
     pub fn new(nb_rows: usize, nb_cols: usize, accessor: Accessor, data: &'a [T]) -> Self {
         return Self {
             nb_rows,
@@ -63,15 +66,19 @@ impl<'a, T> View<'a, T> {
         };
     }
 
+    // Get number of rows of view
     pub fn nb_rows(&self) -> usize {
         return self.nb_rows;
     }
 
+    // Get number of columns of view
     pub fn nb_cols(&self) -> usize {
         return self.nb_cols;
     }
 }
 
+/// This allows to read the view element at (index of row, index of column) position
+/// like this let element: f32 = view[(0, 2)];
 impl<'a, T> Index<(usize, usize)> for View<'a, T> {
     type Output = T;
 
@@ -83,6 +90,8 @@ impl<'a, T> Index<(usize, usize)> for View<'a, T> {
 
 /// Mutable View
 /// This struture is a mutable view on part of matrix, so it does not own data.
+/// It contains number of rows and number of columns of view, an accessor
+/// to get memory position of elements and a mutable slice on data owned by matrix
 struct ViewMut<'a, T> {
     nb_rows: usize,
     nb_cols: usize,
@@ -91,6 +100,7 @@ struct ViewMut<'a, T> {
 }
 
 impl<'a, T> ViewMut<'a, T> {
+    /// Create a mutable view from number of rows, number of columns, an accessor and a mutable slice
     pub fn new(nb_rows: usize, nb_cols: usize, accessor: Accessor, data: &'a mut [T]) -> Self {
         return Self {
             nb_rows,
@@ -100,10 +110,12 @@ impl<'a, T> ViewMut<'a, T> {
         };
     }
 
+    /// Get number of rows of mutable view
     pub fn nb_rows(&self) -> usize {
         return self.nb_rows;
     }
 
+    /// Get number of columns of mutable view
     pub fn nb_cols(&self) -> usize {
         return self.nb_cols;
     }
@@ -112,6 +124,8 @@ impl<'a, T> ViewMut<'a, T> {
 impl<'a, T> Index<(usize, usize)> for ViewMut<'a, T> {
     type Output = T;
 
+    /// This allows to read the view element at (index of row, index of column) position
+    /// like this let element: f32 = view[(0, 2)];
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index(id);
@@ -119,6 +133,8 @@ impl<'a, T> Index<(usize, usize)> for ViewMut<'a, T> {
 }
 
 impl<'a, T> IndexMut<(usize, usize)> for ViewMut<'a, T> {
+    /// This allows to write an value in matrix at (index of row, index of column) position
+    /// like this matrix[(0, 2)] = 3.1415;
     fn index_mut(&mut self, index: (usize, usize)) -> &mut Self::Output {
         let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index_mut(id);
