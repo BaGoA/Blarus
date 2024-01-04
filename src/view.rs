@@ -5,9 +5,10 @@ use std::ops::{Index, IndexMut};
 /// It contains strides along row and column that we need to apply to matrix indexes (i, j)
 /// to obtain the memory location in vector which store matrix data.
 /// There is also offset, if we want start to explore matrix from other index than (0, 0)
+#[derive(Clone, Copy)]
 pub struct Accessor {
-    stride_row: usize,
-    stride_col: usize,
+    pub stride_row: usize,
+    pub stride_col: usize,
     offset: usize,
 }
 
@@ -48,7 +49,7 @@ impl Accessor {
 /// This struture is a view on part of matrix, so it does not own data.
 /// It contains number of rows and number of columns of view, an accessor
 /// to get memory position of elements and a slice on data owned by matrix
-struct View<'a, T> {
+pub struct View<'a, T> {
     nb_rows: usize,
     nb_cols: usize,
     accessor: Accessor,
@@ -92,7 +93,7 @@ impl<'a, T> Index<(usize, usize)> for View<'a, T> {
 /// This struture is a mutable view on part of matrix, so it does not own data.
 /// It contains number of rows and number of columns of view, an accessor
 /// to get memory position of elements and a mutable slice on data owned by matrix
-struct ViewMut<'a, T> {
+pub struct ViewMut<'a, T> {
     nb_rows: usize,
     nb_cols: usize,
     accessor: Accessor,
