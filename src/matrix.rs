@@ -4,7 +4,7 @@ use super::view::{Accessor, View, ViewMut};
 
 /// Matrix
 /// This structure contains number of rows and number of columns of matrix, an accessor
-/// to get memory position of elements and a vector to store matrix data
+/// to get memory position of elements in contiguous memory vector and vector to store matrix data
 pub struct Matrix<T> {
     nb_rows: usize,
     nb_cols: usize,
@@ -80,7 +80,7 @@ impl<'a, T> Matrix<T> {
         return View::new(
             self.nb_rows,
             self.nb_cols,
-            self.accessor.clone(),
+            self.accessor,
             self.data.as_slice(),
         );
     }
@@ -90,7 +90,7 @@ impl<'a, T> Matrix<T> {
         return ViewMut::new(
             self.nb_rows,
             self.nb_cols,
-            self.accessor.clone(),
+            self.accessor,
             self.data.as_mut_slice(),
         );
     }

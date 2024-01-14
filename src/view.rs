@@ -13,8 +13,8 @@ pub struct Accessor {
 }
 
 impl Accessor {
-    // Create an accesor from stride along row and column
-    // We keep the offset to 0
+    /// Create an accesor from stride along row and column
+    /// We keep the offset to 0
     pub fn new(stride_row: usize, stride_col: usize) -> Self {
         return Self {
             stride_row,
@@ -23,7 +23,7 @@ impl Accessor {
         };
     }
 
-    // Create an accessor from stride and offset along row and column
+    /// Create an accessor from stride and offset along row and column
     pub fn new_with_offset(
         stride_row: usize,
         stride_col: usize,
@@ -48,7 +48,7 @@ impl Accessor {
 /// View
 /// This struture is a view on part of matrix, so it does not own data.
 /// It contains number of rows and number of columns of view, an accessor
-/// to get memory position of elements and a slice on data owned by matrix
+/// to get memory position of elements in contiguous memory slice and a slice on data owned by matrix
 pub struct View<'a, T> {
     nb_rows: usize,
     nb_cols: usize,
@@ -67,22 +67,22 @@ impl<'a, T> View<'a, T> {
         };
     }
 
-    // Get number of rows of view
+    /// Get number of rows of view
     pub fn nb_rows(&self) -> usize {
         return self.nb_rows;
     }
 
-    // Get number of columns of view
+    /// Get number of columns of view
     pub fn nb_cols(&self) -> usize {
         return self.nb_cols;
     }
 }
 
-/// This allows to read the view element at (index of row, index of column) position
-/// like this let element: f32 = view[(0, 2)];
 impl<'a, T> Index<(usize, usize)> for View<'a, T> {
     type Output = T;
 
+    /// This allows to read the view element at (index of row, index of column) position
+    /// like this let element: f32 = view[(0, 2)];
     fn index(&self, index: (usize, usize)) -> &Self::Output {
         let id: usize = self.accessor.index(index.0, index.1);
         return self.data.index(id);
@@ -92,7 +92,7 @@ impl<'a, T> Index<(usize, usize)> for View<'a, T> {
 /// Mutable View
 /// This struture is a mutable view on part of matrix, so it does not own data.
 /// It contains number of rows and number of columns of view, an accessor
-/// to get memory position of elements and a mutable slice on data owned by matrix
+/// to get memory position of elements in contiguous memory slice and a mutable slice on data owned by matrix
 pub struct ViewMut<'a, T> {
     nb_rows: usize,
     nb_cols: usize,
@@ -237,16 +237,16 @@ mod tests {
         let data: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
 
         let view: View<i32> =
-            View::new(nb_rows, nb_cols, Accessor::new(nb_cols, 1), data.as_slice());
+            View::new(nb_rows, nb_cols, Accessor::new(1, nb_rows), data.as_slice());
 
         assert_eq!(view[(0, 0)], data[0]);
-        assert_eq!(view[(0, 1)], data[1]);
-        assert_eq!(view[(0, 2)], data[2]);
-        assert_eq!(view[(1, 0)], data[3]);
+        assert_eq!(view[(1, 0)], data[1]);
+        assert_eq!(view[(2, 0)], data[2]);
+        assert_eq!(view[(0, 1)], data[3]);
         assert_eq!(view[(1, 1)], data[4]);
-        assert_eq!(view[(1, 2)], data[5]);
-        assert_eq!(view[(2, 0)], data[6]);
-        assert_eq!(view[(2, 1)], data[7]);
+        assert_eq!(view[(2, 1)], data[5]);
+        assert_eq!(view[(0, 2)], data[6]);
+        assert_eq!(view[(1, 2)], data[7]);
         assert_eq!(view[(2, 2)], data[8]);
     }
 
@@ -259,13 +259,13 @@ mod tests {
         let view: View<i32> = View::new(
             nb_rows - 1,
             nb_cols - 1,
-            Accessor::new_with_offset(nb_cols, 1, 1, 1),
+            Accessor::new_with_offset(1, nb_rows, 1, 1),
             data.as_slice(),
         );
 
         assert_eq!(view[(0, 0)], data[4]);
-        assert_eq!(view[(0, 1)], data[5]);
-        assert_eq!(view[(1, 0)], data[7]);
+        assert_eq!(view[(1, 0)], data[5]);
+        assert_eq!(view[(0, 1)], data[7]);
         assert_eq!(view[(1, 1)], data[8]);
     }
 
