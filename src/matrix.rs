@@ -1,5 +1,8 @@
 use std::ops::{Index, IndexMut};
 
+// TODO:
+// - implement line and column iterator in view (see step_by)
+
 /// The way how matrix data are stored.
 /// Row major order stores matrix data row by row in contiguous memory vector
 /// Column major order stores matrix data column by colunm in contiguous memory vector
@@ -160,7 +163,7 @@ impl<T> Matrix<T>
 where
     T: Default,
 {
-    // Create a row-major matrix from number of rows and columns of matrix
+    /// Create a row-major matrix given number of rows and columns of matrix
     pub fn new_row_major(nb_rows: usize, nb_cols: usize) -> Self {
         let mut data: Vec<T> = Vec::new();
         data.resize_with(nb_rows * nb_cols, Default::default);
@@ -173,10 +176,36 @@ where
         };
     }
 
-    // Create a column-major matrix from number of rows and columns of matrix
+    /// Create a column-major matrix given number of rows and columns of matrix
     pub fn new_column_major(nb_rows: usize, nb_cols: usize) -> Self {
         let mut data: Vec<T> = Vec::new();
         data.resize_with(nb_rows * nb_cols, Default::default);
+
+        return Self {
+            nb_rows,
+            nb_cols,
+            accessor: Accessor::new(1, nb_rows),
+            data,
+        };
+    }
+
+    /// Create a row-major matrix given number of rows, number of columns of matrix
+    /// and vector containing the elements of matrix
+    pub fn new_row_major_with_data(nb_rows: usize, nb_cols: usize, data: Vec<T>) -> Self {
+        assert_eq!(nb_rows * nb_cols, data.len());
+
+        return Self {
+            nb_rows,
+            nb_cols,
+            accessor: Accessor::new(nb_cols, 1),
+            data,
+        };
+    }
+
+    /// Create a column-major matrix given number of rows, number of columns of matrix
+    /// and vector containing the elements of matrix
+    pub fn new_column_major_with_data(nb_rows: usize, nb_cols: usize, data: Vec<T>) -> Self {
+        assert_eq!(nb_rows * nb_cols, data.len());
 
         return Self {
             nb_rows,
@@ -384,6 +413,50 @@ mod tests {
 
         let data_ref: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
         matrix.data = data_ref.clone();
+
+        let view: View<i32> = matrix.full_view();
+
+        assert_eq!(view[(0, 0)], data_ref[0]);
+        assert_eq!(view[(1, 0)], data_ref[1]);
+        assert_eq!(view[(2, 0)], data_ref[2]);
+        assert_eq!(view[(0, 1)], data_ref[3]);
+        assert_eq!(view[(1, 1)], data_ref[4]);
+        assert_eq!(view[(2, 1)], data_ref[5]);
+        assert_eq!(view[(0, 2)], data_ref[6]);
+        assert_eq!(view[(1, 2)], data_ref[7]);
+        assert_eq!(view[(2, 2)], data_ref[8]);
+    }
+
+    #[test]
+    fn test_matrix_new_row_major_with_data() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let data_ref: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let matrix: Matrix<i32> =
+            Matrix::new_row_major_with_data(nb_rows, nb_cols, data_ref.clone());
+
+        let view: View<i32> = matrix.full_view();
+
+        assert_eq!(view[(0, 0)], data_ref[0]);
+        assert_eq!(view[(0, 1)], data_ref[1]);
+        assert_eq!(view[(0, 2)], data_ref[2]);
+        assert_eq!(view[(1, 0)], data_ref[3]);
+        assert_eq!(view[(1, 1)], data_ref[4]);
+        assert_eq!(view[(1, 2)], data_ref[5]);
+        assert_eq!(view[(2, 0)], data_ref[6]);
+        assert_eq!(view[(2, 1)], data_ref[7]);
+        assert_eq!(view[(2, 2)], data_ref[8]);
+    }
+
+    #[test]
+    fn test_matrix_new_column_major_with_data() {
+        let nb_rows: usize = 3;
+        let nb_cols: usize = 3;
+        let data_ref: Vec<i32> = vec![1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        let matrix: Matrix<i32> =
+            Matrix::new_column_major_with_data(nb_rows, nb_cols, data_ref.clone());
 
         let view: View<i32> = matrix.full_view();
 
